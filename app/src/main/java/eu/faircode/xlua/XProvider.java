@@ -199,8 +199,8 @@ class XProvider {
 
     private static Bundle putHook(Context context, Bundle extras) throws Throwable {
         enforcePermission(context);
-
         // Get arguments
+        //System.out.println("puthook :"+ context.getPackageName());
         String id = extras.getString("id");
         String definition = extras.getString("definition");
         if (id == null)
@@ -461,10 +461,20 @@ class XProvider {
         return result;
     }
 
+    /**
+     * Comments from Anusha.
+     * This method inserts and deletes information in the ASSIGNMENT Table.
+     * This is called using the context.getContentResolver().call method from the XAdapterApp
+     * through a thread.
+     * @param context
+     * @param extras
+     * @return
+     * @throws Throwable
+     */
     @SuppressLint("MissingPermission")
     private static Bundle assignHooks(Context context, Bundle extras) throws Throwable {
         enforcePermission(context);
-
+        System.out.print("assign hooks called");
         List<String> hookids = extras.getStringArrayList("hooks");
         String packageName = extras.getString("packageName");
         int uid = extras.getInt("uid");
@@ -486,14 +496,14 @@ class XProvider {
                         groups.add(hook.getGroup());
 
                     if (delete) {
-                        Log.i(TAG, packageName + ":" + uid + "/" + hookid + " deleted");
+                        Log.d("assignHooks", packageName + ":" + uid + "/" + hookid + " deleted");
                         long rows = db.delete("assignment",
                                 "hook = ? AND package = ? AND uid = ?",
                                 new String[]{hookid, packageName, Integer.toString(uid)});
                         if (rows < 0)
                             throw new Throwable("Error deleting assignment");
                     } else {
-                        Log.i(TAG, packageName + ":" + uid + "/" + hookid + " added");
+                        Log.d("assignHooks", packageName + ":" + uid + "/" + hookid + " added");
                         ContentValues cv = new ContentValues();
                         cv.put("package", packageName);
                         cv.put("uid", uid);
@@ -567,8 +577,14 @@ class XProvider {
                                         hook.writeToParcel(parcel, XHook.FLAG_WITH_LUA);
                                         result.newRow().add(parcel.marshall()).add(cursor.getString(colUsed));
                                         parcel.recycle();
-                                    } else
-                                        result.newRow().add(hook.toJSON()).add(cursor.getString(colUsed));
+                                        //ANUSHA
+                                        //Log.d("anusMarshall true", cursor.getString(colUsed));
+                                    } else {
+                                        //ANUSHA
+                                       // Log.d("anusMarshall false", cursor.getString(colUsed));
+                                    result.newRow().add(hook.toJSON()).add(cursor.getString(colUsed));
+
+                                    }
                             } else if (BuildConfig.DEBUG)
                                 Log.w(TAG, "Hook " + hookid + " not found");
                         }
@@ -585,7 +601,8 @@ class XProvider {
         } finally {
             dbLock.readLock().unlock();
         }
-
+        Log.d("anushassig", result.getColumnName(4));
+        //anusha
         return result;
     }
 
