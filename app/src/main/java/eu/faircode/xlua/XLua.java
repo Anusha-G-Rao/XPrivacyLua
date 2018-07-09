@@ -82,13 +82,13 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         int uid = Process.myUid();
-<<<<<<< Updated upstream
+
         //Commented by anusha
         //Called anytime when any app is opened in android system
         Log.i(TAG, "Loaded " + lpparam.packageName + ":" + uid);
-=======
+
         Log.i(TAG2, "Loaded " + lpparam.packageName + ":" + uid);
->>>>>>> Stashed changes
+
 
         if ("android".equals(lpparam.packageName))
             hookAndroid(lpparam);
