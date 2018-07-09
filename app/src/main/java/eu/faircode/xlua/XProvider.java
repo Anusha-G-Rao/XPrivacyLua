@@ -943,7 +943,64 @@ class XProvider {
         return new Bundle();
     }
 
+    // ANUSHA USAGE TABLE
+    static void insertUsageTable(Context context, HashMap dailyUsageMap) throws Throwable {
+        Log.i(TAG, "Our Context daily Usage" +context);
+        enforcePermission(context);
+
+        String packageName = dailyUsageMap.get("packageName").toString();
+        int uid = (int) dailyUsageMap.get("uid");
+        boolean kill = true;
+                //extras.getBoolean("kill", false);
+
+        int userid = Util.getUserId(uid);
+        List<String> collection = getCollection(context, Util.getUserId(uid));
+
+        List<String> hookids = new ArrayList<>();
+        synchronized (lock) {
+            for (XHook hook : hooks.values())
+                if (hook.isAvailable(packageName, collection))
+                    hookids.add(hook.getId());
+        }
+
+        dbLock.writeLock().lock();
+        try {
+            db.beginTransaction();
+            try {
+                //for (String hookid : hookids) {
+                    ContentValues cv = new ContentValues();
+
+                    cv.put("package", packageName);
+                    cv.put("uid", uid);
+                    cv.put("hook", dailyUsageMap.get("methodName").toString());
+                    cv.put("cls", dailyUsageMap.get("cls").toString());
+                    cv.put("timestamp", "");
+                    /*
+                    cv.put("restricted", 0);
+                    cv.putNull("exception");*/
+                    long rows = db.insertWithOnConflict("dailyusage", null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+                    if (rows < 0)
+                        throw new Throwable("Error inserting dailyusage");
+                //}
+                Log.i(TAG, "DB transaction for dailyusage done");
+                db.setTransactionSuccessful();
+            } finally {
+                db.endTransaction();
+            }
+        } finally {
+            dbLock.writeLock().unlock();
+        }
+
+        if (kill)
+          forceStop(context, packageName, userid);
+
+        Log.i(TAG, "Init app pkg=" + packageName + " uid=" + uid + " dailyusage=" + hookids.size());
+
+        /*return new Bundle();*/
+    }
+
     private static Bundle initApp(Context context, Bundle extras) throws Throwable {
+        Log.i(TAG, "Context Assignment table" +context);
         enforcePermission(context);
 
         String packageName = extras.getString("packageName");
@@ -1279,6 +1336,20 @@ class XProvider {
                     _db.execSQL("CREATE UNIQUE INDEX idx_group ON `group`(package, uid, name)");
 
                     _db.setVersion(5);
+                    _db.setTransactionSuccessful();
+                } finally {
+                    _db.endTransaction();
+                }
+            }
+// ANUSHA DB
+            if (_db.needUpgrade(6)) {
+                Log.i(TAG, "Database upgrade version 6");
+                _db.beginTransaction();
+                try {
+                    _db.execSQL("CREATE TABLE dailyusage (package TEXT NOT NULL, uid INTEGER NOT NULL, hook TEXT NOT NULL,cls TEXT,timestamp TEXT)");
+                    _db.execSQL("CREATE UNIQUE INDEX idx_dailyusage ON dailyusage(package, uid, hook)");
+
+                    _db.setVersion(6);
                     _db.setTransactionSuccessful();
                 } finally {
                     _db.endTransaction();

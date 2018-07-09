@@ -128,7 +128,7 @@ public class XParam {
     public Throwable getException() {
         Throwable ex = (this.field == null ? this.param.getThrowable() : null);
         if (BuildConfig.DEBUG)
-            Log.i(TAG, "Get " + this.getPackageName() + ":" + this.getUid() + " result=" + ex.getMessage());
+            Log.i(TAG, "Get exception" + this.getPackageName() + ":" + this.getUid() + " result=" + ex.getMessage());
         return ex;
     }
 
@@ -136,7 +136,7 @@ public class XParam {
     public Object getResult() throws Throwable {
         Object result = (this.field == null ? this.param.getResult() : this.field.get(null));
         if (BuildConfig.DEBUG)
-            Log.i(TAG, "Get " + this.getPackageName() + ":" + this.getUid() + " result=" + result);
+            Log.i(TAG, "Get result" + this.getPackageName() + ":" + this.getUid() + " result=" + result);
         return result;
     }
 

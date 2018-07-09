@@ -70,6 +70,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
     private static final String TAG = "XLua.Xposed";
+    private static final String TAG2 = "XLua.DataAnalysis";
 
     private static int version = -1;
     private Timer timer = null;
@@ -81,9 +82,13 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         int uid = Process.myUid();
+<<<<<<< Updated upstream
         //Commented by anusha
         //Called anytime when any app is opened in android system
         Log.i(TAG, "Loaded " + lpparam.packageName + ":" + uid);
+=======
+        Log.i(TAG2, "Loaded " + lpparam.packageName + ":" + uid);
+>>>>>>> Stashed changes
 
         if ("android".equals(lpparam.packageName))
             hookAndroid(lpparam);
@@ -97,6 +102,7 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
     }
 
     private void hookAndroid(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+        Log.d(TAG, "hookAndroid called. "+lpparam);
         // https://android.googlesource.com/platform/frameworks/base/+/master/services/core/java/com/android/server/am/ActivityManagerService.java
         Class<?> clsAM = Class.forName("com.android.server.am.ActivityManagerService", false, lpparam.classLoader);
 
@@ -170,6 +176,8 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
     }
 
     private void hookSettings(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+
+        Log.d(TAG, "hookSettings called. "+lpparam);
         // https://android.googlesource.com/platform/frameworks/base/+/master/packages/SettingsProvider/src/com/android/providers/settings/SettingsProvider.java
         Class<?> clsSet = Class.forName("com.android.providers.settings.SettingsProvider", false, lpparam.classLoader);
 
@@ -238,6 +246,8 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
     private void hookApplication(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         final int uid = Process.myUid();
+        Log.d(TAG2, "hookApplication called. "+uid);
+
         Class<?> at = Class.forName("android.app.LoadedApk", false, lpparam.classLoader);
         XposedBridge.hookAllMethods(at, "makeApplication", new XC_MethodHook() {
             private boolean made = false;
@@ -270,6 +280,7 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
     }
 
     private void hookPackage(final XC_LoadPackage.LoadPackageParam lpparam, int uid, final Context context) throws Throwable {
+        Log.d(TAG2, "hookPackage called. "+uid);
         // Get assigned hooks
         List<XHook> hooks = new ArrayList<>();
         Cursor chooks = null;
@@ -336,9 +347,9 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
                 // Compile script
                 final Prototype compiledScript;
                 ScriptHolder sh = new ScriptHolder(hook.getLuaScript());
-                if (scriptPrototype.containsKey(sh))
+                if (scriptPrototype.containsKey(sh)) {
                     compiledScript = scriptPrototype.get(sh);
-                else {
+                } else {
                     InputStream is = new ByteArrayInputStream(sh.script.getBytes());
                     compiledScript = LuaC.instance.compile(is, "script");
                     scriptPrototype.put(sh, compiledScript);
@@ -349,7 +360,12 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
                 // Handle field method
                 String methodName = hook.getMethodName();
+
                 if (methodName != null) {
+                    Log.d(TAG2, "method is not null "+ methodName);
+                    Log.d(TAG2, "Pckg Name"+ lpparam.packageName);
+                    Log.d(TAG2, "UID is "+ uid);
+                    // ANUSHA
                     String[] m = methodName.split(":");
                     if (m.length > 1) {
                         Field field = cls.getField(m[0]);
@@ -357,6 +373,16 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
                         cls = obj.getClass();
                     }
                     methodName = m[m.length - 1];
+                    HashMap val = new HashMap();
+                    val.put("methodName",m);
+                    val.put("packageName",lpparam.packageName);
+                    val.put("uid",uid);
+                    val.put("cls",cls);
+                    Log.d(TAG2, "val "+ val);
+                    XProvider.insertUsageTable(context, val);
+
+                } else {
+                    Log.d(TAG2, "method is null");
                 }
 
                 // Get parameter types
@@ -400,6 +426,9 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
                         // Report use
                         boolean restricted = result.arg1().checkboolean();
+
+                        Log.d(TAG2, "App has been restricted "+restricted);
+
                         if (restricted && hook.doUsage()) {
                             Bundle data = new Bundle();
                             data.putString("function", "after");
@@ -439,6 +468,8 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
                 } else {
                     // Get method
                     final Member member = resolveMember(cls, methodName, paramTypes);
+
+                    Log.d(TAG2, "when method null "+member);
 
                     // Check return type
                     final Class<?> memberReturnType = (methodName == null ? null : ((Method) member).getReturnType());
@@ -494,6 +525,9 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
 
                                 // Report use
                                 boolean restricted = result.arg1().checkboolean();
+
+                                Log.d(TAG2, "App has been restricted (!) "+restricted);
+
                                 if (restricted && hook.doUsage()) {
                                     Bundle data = new Bundle();
                                     data.putString("function", function);
