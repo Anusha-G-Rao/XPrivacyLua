@@ -1,1 +1,1 @@
-include ':app', ':datarecording'
+include ':app', ':lib', ':database'
