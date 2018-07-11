@@ -59,6 +59,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import de.robv.android.xposed.XposedBridge;
 import eu.faircode.xlua.android.db.XLuaDataBaseUtils;
 
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+
+
 class XProvider {
     private final static String TAG = "XLua.Provider";
 
@@ -73,6 +78,24 @@ class XProvider {
     final static String cChannelName = "xlua";
 
     static Uri URI = Settings.System.CONTENT_URI;
+
+    public static final String TAG1 = "XLua.Time";
+
+    /* begin
+
+    public static String dateFormat = "dd-MM-yyyy hh:mm";
+    private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+
+
+    public static String convertMilliSecondsToFormattedDate(long milliSeconds){
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(milliSeconds);
+        return simpleDateFormat.format(calendar.getTime());
+    }
+
+
+
+    */
 
     static void loadData(Context context) throws RemoteException {
         try {
@@ -688,12 +711,18 @@ class XProvider {
                 // Store event
                 ContentValues cv = new ContentValues();
                 if ("install".equals(event)) {
-                    cv.put("installed", time);
+                    String formatedtime = CalendarUtils.convertMilliSecondsToFormattedDate(time);
+                    cv.put("installed",formatedtime);
+                    //cv.put("installed",time);
                      /*
                       Added for adding into @XLuaDatabaseUtils
                       every time a particular method is installed by an installed app.
                      */
-                    valuesForRecord[0] = Long.toString(time);
+                    //CalendarUtils.convertMilliSecondsToFormattedDate
+
+
+                    //Log.d(TAG1, "formatted time. " + formatedtime);
+                    valuesForRecord[0] = formatedtime;
                     valuesForRecord[1] = hookid;
                     valuesForRecord[2] = String.valueOf(uid);
                     valuesForRecord[3] = packageName;
@@ -704,12 +733,17 @@ class XProvider {
                       Added for adding into @XLuaDatabaseUtils
                       every time a particular method is accessed by an installed app.
                      */
-                    valuesForRecord[0] = Long.toString(time);
+                    //valuesForRecord[0] = Long.toString(time);
+                    //Log.d(TAG1, "formatted time. "+ CalendarUtils.convertMilliSecondsToFormattedDate(time) );
+
+                    String formatedtime1 = CalendarUtils.convertMilliSecondsToFormattedDate(time);
+                    //Log.d(TAG1, "formatted time. " + formatedtime1);
+                    valuesForRecord[0] = formatedtime1;
                     valuesForRecord[1] = hookid;
                     valuesForRecord[2] = String.valueOf(uid);
                     valuesForRecord[3] = packageName;
                     installation = false;
-                    cv.put("used", time);
+                    cv.put("used", formatedtime1);
                     cv.put("restricted", restricted);
                 }
                 if (data.containsKey("exception"))

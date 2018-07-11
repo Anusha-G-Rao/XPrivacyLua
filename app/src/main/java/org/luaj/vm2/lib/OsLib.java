@@ -21,6 +21,8 @@
 ******************************************************************************/
 package org.luaj.vm2.lib;
 
+import android.annotation.SuppressLint;
+
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
@@ -141,6 +143,7 @@ public class OsLib extends TwoArgFunction {
 			this.opcode = opcode;
 			this.name = name;
 		}
+		@SuppressLint("WrongConstant")
 		public Varargs invoke(Varargs args) {
 			try {
 				switch ( opcode ) {
