@@ -256,6 +256,9 @@ public class XLua implements IXposedHookZygoteInit, IXposedHookLoadPackage {
                         int start = Util.getUserUid(userid, 99000);
                         int end = Util.getUserUid(userid, 99999);
                         boolean isolated = (uid >= start && uid <= end);
+                        /*
+                         * TODO: Find out what isolated process are check if they need to be added into the recorded table for Anusha
+                         */
                         if (isolated) {
                             Log.i(TAG, "Skipping isolated " + lpparam.packageName + ":" + uid);
                             return;
