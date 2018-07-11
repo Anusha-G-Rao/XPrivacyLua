@@ -80,6 +80,7 @@ class XProvider {
     static Uri URI = Settings.System.CONTENT_URI;
 
     public static final String TAG1 = "XLua.Time";
+    public static final String TAG2 = "XLua.foreground";
 
     /* begin
 
@@ -702,7 +703,7 @@ class XProvider {
         boolean notify = Boolean.parseBoolean(getSetting(context, args).getString("value"));
 
         long used = -1;
-        String[] valuesForRecord = new String[4];
+        String[] valuesForRecord = new String[8];
         boolean installation = false;
         dbLock.writeLock().lock();
         try {
@@ -711,14 +712,20 @@ class XProvider {
                 // Store event
                 ContentValues cv = new ContentValues();
                 if ("install".equals(event)) {
-                    String formatedtime = CalendarUtils.convertMilliSecondsToFormattedDate(time);
-                    cv.put("installed",formatedtime);
-                    //cv.put("installed",time);
                      /*
                       Added for adding into @XLuaDatabaseUtils
                       every time a particular method is installed by an installed app.
                      */
                     //CalendarUtils.convertMilliSecondsToFormattedDate
+                    String formatedtime = CalendarUtils.convertMilliSecondsToFormattedDate(time);
+                    Boolean ScreenLock = ScreenLockCheck.isPhoneLocked(context);
+                    Boolean Foreground =  foregroundcheck.isAppInForeground(context);
+                    Log.d(TAG2, "Screen Locked during install" + ScreenLock +"*****" + packageName);
+                    Log.d(TAG2, "foreground_install" + Foreground + "*****" + packageName);
+                    cv.put("installed",formatedtime);
+                    //cv.put("screenlock", Boolean.toString(ScreenLock));
+                    //cv.put("foreground", Boolean.toString(Foreground));
+                    //cv.put("installed",time);
 
 
                     //Log.d(TAG1, "formatted time. " + formatedtime);
@@ -726,6 +733,8 @@ class XProvider {
                     valuesForRecord[1] = hookid;
                     valuesForRecord[2] = String.valueOf(uid);
                     valuesForRecord[3] = packageName;
+                    valuesForRecord[4] = Boolean.toString(ScreenLock);
+                    valuesForRecord[5] = Boolean.toString(Foreground);
                     installation = true;
 
                 } else if ("use".equals(event)) {
@@ -735,6 +744,10 @@ class XProvider {
                      */
                     //valuesForRecord[0] = Long.toString(time);
                     //Log.d(TAG1, "formatted time. "+ CalendarUtils.convertMilliSecondsToFormattedDate(time) );
+                    Boolean ScreenLock = ScreenLockCheck.isPhoneLocked(context);
+                    Boolean Foreground =  foregroundcheck.isAppInForeground(context);
+                    Log.d(TAG2, "Screen Locked during used" + ScreenLock + "*****" + packageName);
+                    Log.d(TAG2, "foreground used" + Foreground + "*****" + packageName);
 
                     String formatedtime1 = CalendarUtils.convertMilliSecondsToFormattedDate(time);
                     //Log.d(TAG1, "formatted time. " + formatedtime1);
@@ -742,16 +755,23 @@ class XProvider {
                     valuesForRecord[1] = hookid;
                     valuesForRecord[2] = String.valueOf(uid);
                     valuesForRecord[3] = packageName;
+                    valuesForRecord[4] = Boolean.toString(ScreenLock);
+                    valuesForRecord[5] = Boolean.toString(Foreground);
+
                     installation = false;
                     cv.put("used", formatedtime1);
                     cv.put("restricted", restricted);
+                    //cv.put("screenlock", Boolean.toString(ScreenLock));
+                    //cv.put("foreground", Boolean.toString(Foreground));
                 }
                 if (data.containsKey("exception"))
                     cv.put("exception", data.getString("exception"));
                 if (data.containsKey("old"))
                     cv.put("old", data.getString("old"));
+                    valuesForRecord[6] =data.getString("old");
                 if (data.containsKey("new"))
                     cv.put("new", data.getString("new"));
+                valuesForRecord[7] =data.getString("new");
 
                 long rows = db.update("assignment", cv,
                         "package = ? AND uid = ? AND hook = ?",
@@ -1344,7 +1364,7 @@ class XProvider {
                 Log.i(TAG, "Database upgrade version 6");
                 _db.beginTransaction();
                 try {
-                    _db.execSQL("CREATE TABLE `record` (package TEXT NOT NULL, uid INTEGER NOT NULL, method TEXT NOT NULL, timestamp TEXT NOT NULL)");
+                    _db.execSQL("CREATE TABLE `record` (package TEXT NOT NULL, uid INTEGER NOT NULL, method TEXT NOT NULL, timestamp TEXT NOT NULL, screenlock TEXT NOT NULL, foreground TEXT NOT NULL, old TEXT, new TEXT)");
 
                     _db.setVersion(6);
                     _db.setTransactionSuccessful();
@@ -1352,6 +1372,33 @@ class XProvider {
                     _db.endTransaction();
                 }
             }
+
+            /*if (_db.needUpgrade(7)) {
+                Log.i(TAG, "Database upgrade version 7");
+                _db.beginTransaction();
+                try {
+                    _db.execSQL("ALTER TABLE assignment ADD COLUMN screenlock TEXT");
+                    _db.execSQL("ALTER TABLE assignment ADD COLUMN foreground TEXT");
+                    _db.setVersion(7);
+                    _db.setTransactionSuccessful();
+                } finally {
+                    _db.endTransaction();
+                }
+            }
+
+            if (_db.needUpgrade(7)) {
+                Log.i(TAG, "Database upgrade version 7");
+                _db.beginTransaction();
+                try {
+                    _db.execSQL("ALTER TABLE record ADD COLUMN screenlock TEXT NOT NULL");
+                    _db.execSQL("ALTER TABLE record ADD COLUMN foreground TEXT NOT NULL ");
+                    _db.setVersion(7);
+                    _db.setTransactionSuccessful();
+                } finally {
+                    _db.endTransaction();
+                }
+            }*/
+
 
 
             //deleteHook(_db, "Privacy.ContentResolver/query1");

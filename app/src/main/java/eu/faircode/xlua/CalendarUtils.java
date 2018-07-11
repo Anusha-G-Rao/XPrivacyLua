@@ -9,7 +9,8 @@ import java.util.Calendar;
 
 
 public class CalendarUtils {
-   public static String dateFormat = "dd-MM-yyyy hh:mm";
+    //public static String dateFormat = "dd-MM-yyyy hh:mm";
+   public static String dateFormat = "dd-MM-yyyy HH:mm:ss";
     private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
 
     public static String convertMilliSecondsToFormattedDate(long milliSeconds){

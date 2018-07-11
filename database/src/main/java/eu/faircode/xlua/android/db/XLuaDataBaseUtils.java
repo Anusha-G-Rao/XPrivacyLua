@@ -18,7 +18,7 @@ public class XLuaDataBaseUtils {
         if (db == null)
             db = database;
 
-        if (valuesForRecord[0] != null && valuesForRecord[1] != null && valuesForRecord[2] != null && valuesForRecord[3] != null) {
+        if (valuesForRecord[0] != null && valuesForRecord[1] != null && valuesForRecord[2] != null && valuesForRecord[3] != null && valuesForRecord[4] != null && valuesForRecord[5] != null) {
             updateRecordDb(valuesForRecord);
         }
 
@@ -37,6 +37,10 @@ public class XLuaDataBaseUtils {
                 cv.put("method", valuesForRecord[1]);
                 cv.put("uid", Integer.valueOf(valuesForRecord[2]));
                 cv.put("package", valuesForRecord[3]);
+                cv.put("screenlock", valuesForRecord[4]);
+                cv.put("foreground", valuesForRecord[5]);
+                cv.put("old", valuesForRecord[6]);
+                cv.put("new", valuesForRecord[7]);
 
                 long rows = db.insertWithOnConflict("`record`", null, cv, SQLiteDatabase.CONFLICT_REPLACE);
                 if (rows < 0)
