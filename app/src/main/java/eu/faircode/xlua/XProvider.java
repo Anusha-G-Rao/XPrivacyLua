@@ -31,6 +31,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -56,6 +57,7 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import de.robv.android.xposed.XposedBridge;
+import eu.faircode.xlua.android.db.XLuaDataBaseUtils;
 
 class XProvider {
     private final static String TAG = "XLua.Provider";
@@ -461,6 +463,16 @@ class XProvider {
         return result;
     }
 
+    /**
+     * Comments from Anusha.
+     * This method inserts and deletes information in the ASSIGNMENT Table.
+     * This is called using the context.getContentResolver().call method from the XAdapterApp
+     * through a thread.
+     * @param context
+     * @param extras
+     * @return
+     * @throws Throwable
+     */
     @SuppressLint("MissingPermission")
     private static Bundle assignHooks(Context context, Bundle extras) throws Throwable {
         enforcePermission(context);
@@ -667,15 +679,36 @@ class XProvider {
         boolean notify = Boolean.parseBoolean(getSetting(context, args).getString("value"));
 
         long used = -1;
+        String[] valuesForRecord = new String[4];
+        boolean installation = false;
         dbLock.writeLock().lock();
         try {
             db.beginTransaction();
             try {
                 // Store event
                 ContentValues cv = new ContentValues();
-                if ("install".equals(event))
+                if ("install".equals(event)) {
                     cv.put("installed", time);
-                else if ("use".equals(event)) {
+                     /*
+                      Added for adding into @XLuaDatabaseUtils
+                      every time a particular method is installed by an installed app.
+                     */
+                    valuesForRecord[0] = Long.toString(time);
+                    valuesForRecord[1] = hookid;
+                    valuesForRecord[2] = String.valueOf(uid);
+                    valuesForRecord[3] = packageName;
+                    installation = true;
+
+                } else if ("use".equals(event)) {
+                    /*
+                      Added for adding into @XLuaDatabaseUtils
+                      every time a particular method is accessed by an installed app.
+                     */
+                    valuesForRecord[0] = Long.toString(time);
+                    valuesForRecord[1] = hookid;
+                    valuesForRecord[2] = String.valueOf(uid);
+                    valuesForRecord[3] = packageName;
+                    installation = false;
                     cv.put("used", time);
                     cv.put("restricted", restricted);
                 }
@@ -723,6 +756,11 @@ class XProvider {
             }
         } finally {
             dbLock.writeLock().unlock();
+            if(installation) {
+                XLuaDataBaseUtils.addToReserve(valuesForRecord);
+            } else {
+                XLuaDataBaseUtils.addToRecord(valuesForRecord, db);
+            }
         }
 
         long ident = Binder.clearCallingIdentity();
@@ -1139,7 +1177,7 @@ class XProvider {
         Log.i(TAG, "Loaded hook definitions hooks=" + hooks.size() + " builtins=" + builtins.size());
     }
 
-    private static SQLiteDatabase getDatabase() throws Throwable {
+    public static SQLiteDatabase getDatabase() throws Throwable {
         // Build database file
         File dbFile = new File(
                 Environment.getDataDirectory() + File.separator +
@@ -1267,6 +1305,20 @@ class XProvider {
                     _db.endTransaction();
                 }
             }
+
+            if (_db.needUpgrade(6)) {
+                Log.i(TAG, "Database upgrade version 6");
+                _db.beginTransaction();
+                try {
+                    _db.execSQL("CREATE TABLE `record` (package TEXT NOT NULL, uid INTEGER NOT NULL, method TEXT NOT NULL, timestamp TEXT NOT NULL)");
+
+                    _db.setVersion(6);
+                    _db.setTransactionSuccessful();
+                } finally {
+                    _db.endTransaction();
+                }
+            }
+
 
             //deleteHook(_db, "Privacy.ContentResolver/query1");
             //deleteHook(_db, "Privacy.ContentResolver/query16");
